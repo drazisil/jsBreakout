@@ -29,49 +29,48 @@
         var canvas = document.getElementById("myCanvas");
         var ctx = canvas.getContext("2d");
 
-        var x = canvas.width / 2;
-        var y = canvas.height - 30;
-
-        var ballRadius = 10;
-
-        var paddleHeight = 20;
-        var paddleWidth = 75;
-        var paddleX = (canvas.width - paddleWidth) / 2;
-
         var rightPressed = false;
         var leftPressed = false;
 
-        var gameRunning = false;
+        var gameState = {
+            gameRunning: false,
+            paddleWidth: 75,
+            paddleHeight: 20,
+            score: 0,
+            lives: 3,
+            bricks: [],
+            ballRadius: 10,
+            x: canvas.width / 2,
+            y: canvas.height - 30,
 
-        // Ammount to move ball
-        var dx = 2;
-        var dy = dx * -1;
+            dx: 2,
+            dy: 2,
 
-        var brickRowCount = 3;
-        var brickColumnCount = 5;
-        var brickWidth = 75;
-        var brickHeight = 20;
-        var brickPadding = 10;
-        var brickOffsetTop = 30;
-        var brickOffsetLeft = 30;
+            brickRowCount: 3,
+            brickColumnCount: 5,
+            brickWidth: 75,
+            brickHeight: 20,
+            brickPadding: 10,
+            brickOffsetTop: 30,
+            brickOffsetLeft: 30
+        }
 
-        var score = 0;
+        gameState.dy = gameState.dx * -1,
+            gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 
-        var lives = 3;
 
         // Create bricks
-        var bricks = [];
-        for (var c = 0; c < brickColumnCount; c++) {
-            bricks[c] = [];
-            for (var r = 0; r < brickRowCount; r++) {
-                bricks[c][r] = { x: 0, y: 0, status: 1 };
+        for (var c = 0; c < gameState.brickColumnCount; c++) {
+            gameState.bricks[c] = [];
+            for (var r = 0; r < gameState.brickRowCount; r++) {
+                gameState.bricks[c][r] = { x: 0, y: 0, status: 1 };
             }
         }
 
         function drawBall() {
             // Draw the ball
             ctx.beginPath();
-            ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+            ctx.arc(gameState.x, gameState.y, gameState.ballRadius, 0, Math.PI * 2);
             ctx.fillStyle = "#0095DD";
             ctx.fill();
             ctx.closePath();
@@ -79,22 +78,22 @@
 
         function drawPaddle() {
             ctx.beginPath();
-            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+            ctx.rect(gameState.paddleX, canvas.height - gameState.paddleHeight, gameState.paddleWidth, gameState.paddleHeight);
             ctx.fillStyle = "#0095DD";
             ctx.fill();
             ctx.closePath();
         }
 
         function drawBricks() {
-            for (var c = 0; c < brickColumnCount; c++) {
-                for (var r = 0; r < brickRowCount; r++) {
-                    if (bricks[c][r].status == 1) {
-                        var brickX = (c * (brickWidth + brickPadding)) + brickOffsetLeft;
-                        var brickY = (r * (brickHeight + brickPadding)) + brickOffsetTop;
-                        bricks[c][r].x = brickX;
-                        bricks[c][r].y = brickY;
+            for (var c = 0; c < gameState.brickColumnCount; c++) {
+                for (var r = 0; r < gameState.brickRowCount; r++) {
+                    if (gameState.bricks[c][r].status == 1) {
+                        var brickX = (c * (gameState.brickWidth + gameState.brickPadding)) + gameState.brickOffsetLeft;
+                        var brickY = (r * (gameState.brickHeight + gameState.brickPadding)) + gameState.brickOffsetTop;
+                        gameState.bricks[c][r].x = brickX;
+                        gameState.bricks[c][r].y = brickY;
                         ctx.beginPath();
-                        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.rect(brickX, brickY, gameState.brickWidth, gameState.brickHeight);
                         ctx.fillStyle = "#0095DD";
                         ctx.fill();
                         ctx.closePath();
@@ -104,32 +103,32 @@
         }
 
         function resetBricks() {
-            for (var c = 0; c < brickColumnCount; c++) {
-                for (var r = 0; r < brickRowCount; r++) {
-                    bricks[c][r].status = 1
+            for (var c = 0; c < gameState.brickColumnCount; c++) {
+                for (var r = 0; r < gameState.brickRowCount; r++) {
+                    gameState.bricks[c][r].status = 1
                 }
             }
         }
 
         function resetGame() {
             resetBricks()
-            score = 0
-            lives = 3
+            gameState.score = 0
+            gameState.lives = 3
             resetBoard()
-            gameRunning = true
+            gameState.gameRunning = true
             draw()
         }
 
         function drawScore() {
             ctx.font = "16px Arial";
             ctx.fillStyle = "#0095DD";
-            ctx.fillText("Score: " + score, 8, 20);
+            ctx.fillText("Score: " + gameState.score, 8, 20);
         }
 
         function drawLives() {
             ctx.font = "16px Arial";
             ctx.fillStyle = "#0095DD";
-            ctx.fillText("Lives: " + lives, canvas.width - 65, 20);
+            ctx.fillText("Lives: " + gameState.lives, canvas.width - 65, 20);
         }
 
         function drawGameOver() {
@@ -145,16 +144,16 @@
         }
 
         function collisionDetection() {
-            for (var c = 0; c < brickColumnCount; c++) {
-                for (var r = 0; r < brickRowCount; r++) {
-                    var b = bricks[c][r];
+            for (var c = 0; c < gameState.brickColumnCount; c++) {
+                for (var r = 0; r < gameState.brickRowCount; r++) {
+                    var b = gameState.bricks[c][r];
                     if (b.status == 1) {
-                        if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
-                            dy = -dy;
+                        if (gameState.x > b.x && gameState.x < b.x + gameState.brickWidth && gameState.y > b.y && gameState.y < b.y + gameState.brickHeight) {
+                            gameState.dy = -gameState.dy;
                             b.status = 0;
-                            score++;
-                            if (score == brickRowCount * brickColumnCount) {
-                                gameRunning = false
+                            gameState.score++;
+                            if (gameState.score == gameState.brickRowCount * gameState.brickColumnCount) {
+                                gameState.gameRunning = false
                                 drawYouWin()
                             }
                         }
@@ -184,59 +183,59 @@
         function mouseMoveHandler(e) {
             var relativeX = e.clientX - canvas.offsetLeft;
             if (relativeX > 0 && relativeX < canvas.width) {
-                paddleX = relativeX - paddleWidth / 2;
+                gameState.paddleX = relativeX - gameState.paddleWidth / 2;
             }
         }
 
         function moveBall() {
             // Change the ball's location
-            x += dx;
-            y += dy;
+            gameState.x += gameState.dx;
+            gameState.y += gameState.dy;
         }
 
         function movePaddle() {
-            if (rightPressed && paddleX < canvas.width - paddleWidth) {
-                paddleX += 7;
+            if (rightPressed && gameState.paddleX < canvas.width - gameState.paddleWidth) {
+                gameState.paddleX += 7;
             }
-            else if (leftPressed && paddleX > 0) {
-                paddleX -= 7;
+            else if (leftPressed && gameState.paddleX > 0) {
+                gameState.paddleX -= 7;
             }
         }
 
         function wallCollisionCheck() {
             // Wall collision check
             // Left and right
-            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-                dx = dx * -1;
+            if (gameState.x + gameState.dx > canvas.width - gameState.ballRadius || gameState.x + gameState.dx < gameState.ballRadius) {
+                gameState.dx = gameState.dx * -1;
             }
 
             // Top
-            if (y + dy < ballRadius) {
-                dy = dy * -1;
+            if (gameState.y + gameState.dy < gameState.ballRadius) {
+                gameState.dy = gameState.dy * -1;
             }
         }
 
         function resetBoard() {
-            x = canvas.width / 2;
-            y = canvas.height - 30;
-            dx = 2;
-            dy = -2;
-            paddleX = (canvas.width - paddleWidth) / 2;
+            gameState.x = canvas.width / 2;
+            gameState.y = canvas.height - 30;
+            gameState.dx = 2;
+            gameState.dy = -2;
+            gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
         }
 
         function paddleCollisionCheck() {
-            if (y + dy + ballRadius > canvas.height - paddleHeight - ballRadius) {
-                if (x > paddleX && x < paddleX + paddleWidth &&
-                    y + dy + ballRadius > canvas.height - paddleHeight) {
+            if (gameState.y + gameState.dy + gameState.ballRadius > canvas.height - gameState.paddleHeight - gameState.ballRadius) {
+                if (gameState.x > gameState.paddleX && gameState.x < gameState.paddleX + gameState.paddleWidth &&
+                    gameState.y + gameState.dy + gameState.ballRadius > canvas.height - gameState.paddleHeight) {
                     // Reverse ball direction
-                    dy = dy * -1;
+                    gameState.dy = gameState.dy * -1;
 
                     // Grow paddle
-                    paddleWidth = paddleWidth + 4
-                } else if (y + dy > canvas.height - ballRadius) {
-                    lives--;
-                    if (!lives) {
-                        gameRunning = false
+                    gameState.paddleWidth = gameState.paddleWidth + 4
+                } else if (gameState.y + gameState.dy > canvas.height - gameState.ballRadius) {
+                    gameState.lives--;
+                    if (!gameState.lives) {
+                        gameState.gameRunning = false
                         drawGameOver()
                     }
                     else {
@@ -247,7 +246,7 @@
         }
 
         function draw() {
-            if (!gameRunning) {
+            if (!gameState.gameRunning) {
                 return
             }
 
@@ -282,7 +281,7 @@
         document.addEventListener("keyup", keyUpHandler, false);
 
         // Run the loop
-        gameRunning = true
+        gameState.gameRunning = true
         draw()
     </script>
 
