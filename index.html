@@ -22,7 +22,7 @@
 
     <canvas id="myCanvas" width="480" height="320"></canvas>
 
-    <button onclick="document.location.reload()">Restart</button>
+    <button onclick="resetGame()">Restart</button>
 
     <script>
         // JavaScript code goes here
@@ -45,7 +45,7 @@
 
         // Ammount to move ball
         var dx = 2;
-        var dy = -2;
+        var dy = dx * -1;
 
         var brickRowCount = 3;
         var brickColumnCount = 5;
@@ -59,7 +59,7 @@
 
         var lives = 3;
 
-        // Ceate bricks
+        // Create bricks
         var bricks = [];
         for (var c = 0; c < brickColumnCount; c++) {
             bricks[c] = [];
@@ -101,6 +101,23 @@
                     }
                 }
             }
+        }
+
+        function resetBricks() {
+            for (var c = 0; c < brickColumnCount; c++) {
+                for (var r = 0; r < brickRowCount; r++) {
+                    bricks[c][r].status = 1
+                }
+            }
+        }
+
+        function resetGame() {
+            resetBricks()
+            score = 0
+            lives = 3
+            resetBoard()
+            gameRunning = true
+            draw()
         }
 
         function drawScore() {
@@ -159,12 +176,69 @@
             }
         }
 
+        function moveBall() {
+            // Change the ball's location
+            x += dx;
+            y += dy;
+        }
+
+        function movePaddle() {
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 7;
+            }
+            else if (leftPressed && paddleX > 0) {
+                paddleX -= 7;
+            }
+        }
+
+        function wallCollisionCheck() {
+            // Wall collision check
+            // Left and right
+            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+                dx = dx * -1;
+            }
+
+            // Top
+            if (y + dy < ballRadius) {
+                dy = dy * -1;
+            }
+        }
+
+        function resetBoard() {
+            x = canvas.width / 2;
+            y = canvas.height - 30;
+            dx = 2;
+            dy = -2;
+            paddleX = (canvas.width - paddleWidth) / 2;
+        }
+
+        function paddleCollisionCheck() {
+            if (y + dy + ballRadius > canvas.height - paddleHeight - ballRadius) {
+                if (x > paddleX && x < paddleX + paddleWidth &&
+                    y + dy + ballRadius > canvas.height - paddleHeight) {
+                    // Reverse ball direction
+                    dy = dy * -1;
+
+                    // Grow paddle
+                    paddleWidth = paddleWidth + 4
+                } else if (y + dy > canvas.height - ballRadius) {
+                    lives--;
+                    if (!lives) {
+                        gameRunning = false
+                        resetBricks()
+                        alert("GAME OVER");
+                    }
+                    else {
+                        resetBoard()
+                    }
+                }
+            }
+        }
+
         function draw() {
             if (!gameRunning) {
                 return
             }
-
-            // drawing code
 
             // Clear the canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -173,49 +247,13 @@
 
             drawBall()
 
-            // Wall collision check
-            // Left and right
-            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
-                dx = -dx;
-            }
+            wallCollisionCheck()
 
-            // Top
-            if (y + dy < ballRadius) {
-                dy = -dy;
-            } else if (y + dy + ballRadius > canvas.height - paddleHeight - ballRadius) {
-                if (x > paddleX && x < paddleX + paddleWidth &&
-                    y + dy + ballRadius > canvas.height - paddleHeight) {
-                    // Reverse ball direction
-                    dy = -dy;
+            paddleCollisionCheck()
 
-                    // Grow paddle
-                    paddleWidth = paddleWidth + 4
-                } else if (y + dy > canvas.height - ballRadius) {
-                    lives--;
-                    if (!lives) {
-                        gameRunning = false
-                        alert("GAME OVER");
-                    }
-                    else {
-                        x = canvas.width / 2;
-                        y = canvas.height - 30;
-                        dx = 2;
-                        dy = -2;
-                        paddleX = (canvas.width - paddleWidth) / 2;
-                    }
-                }
-            }
+            moveBall()
 
-            // Change the ball's location
-            x += dx;
-            y += dy;
-
-            if (rightPressed && paddleX < canvas.width - paddleWidth) {
-                paddleX += 7;
-            }
-            else if (leftPressed && paddleX > 0) {
-                paddleX -= 7;
-            }
+            movePaddle()
 
             drawPaddle()
 
