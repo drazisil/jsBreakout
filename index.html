@@ -132,6 +132,18 @@
             ctx.fillText("Lives: " + lives, canvas.width - 65, 20);
         }
 
+        function drawGameOver() {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#0095DD";
+            ctx.fillText("Game Over!", canvas.width / 2, canvas.height / 2);
+        }
+
+        function drawYouWin() {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#0095DD";
+            ctx.fillText("YOU WIN, CONGRATULATIONS!", canvas.width / 2, canvas.height / 2);
+        }
+
         function collisionDetection() {
             for (var c = 0; c < brickColumnCount; c++) {
                 for (var r = 0; r < brickRowCount; r++) {
@@ -143,7 +155,7 @@
                             score++;
                             if (score == brickRowCount * brickColumnCount) {
                                 gameRunning = false
-                                alert("YOU WIN, CONGRATULATIONS!");
+                                drawYouWin()
                             }
                         }
                     }
@@ -225,8 +237,7 @@
                     lives--;
                     if (!lives) {
                         gameRunning = false
-                        resetBricks()
-                        alert("GAME OVER");
+                        drawGameOver()
                     }
                     else {
                         resetBoard()
