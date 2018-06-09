@@ -183,7 +183,7 @@ function drawGameOver () {
 
 function drawYouWin () {
   ctx.font = '16px Arial';
-  ctx.fillStyle = '#0095DD';
+  ctx.fillStyle = 'white';
   ctx.fillText (
     'YOU WIN, CONGRATULATIONS!',
     canvas.width / 2,
@@ -282,8 +282,14 @@ function movePaddle () {
     gameState.paddleX < canvas.width - gameState.paddleWidth
   ) {
     gameState.paddleX += 7;
+    if (!gameState.gameRunning) {
+      gameState.ballX += 7;
+    }
   } else if (leftPressed && gameState.paddleX > 0) {
     gameState.paddleX -= 7;
+    if (!gameState.gameRunning) {
+      gameState.ballX -= 7;
+    }
   }
 }
 
