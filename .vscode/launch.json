@@ -6,9 +6,14 @@
   "configurations": [
     {
       "name": "Launch index.html",
-      "type": "chrome",
+      "type": "firefox",
       "request": "launch",
-      "file": "${workspaceFolder}/index.html"
+      "reAttach": true,
+      "file": "${workspaceFolder}/index.html",
+      "reloadOnChange": {
+        "watch": ["${workspaceFolder}/**/*.js"],
+        "ignore": ["${workspaceFolder}/node_modules/**"]
+      }
     }
   ]
 }
