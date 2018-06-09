@@ -13,11 +13,12 @@ var gameState = {
   lives: 3,
   bricks: [],
   ballRadius: 10,
-  x: canvas.width / 2,
-  y: canvas.height - 30,
+  ballX: canvas.width / 2,
+  ballY: canvas.height - 30,
 
-  dx: 2,
-  dy: 2,
+  forceX: 2,
+  forceY: 2,
+  ballSpeed: 2,
 
   brickRowCount: 6,
   brickColumnCount: 8,
@@ -28,8 +29,8 @@ var gameState = {
   brickOffsetLeft: 30,
 };
 
-(gameState.dy = gameState.dx * -1), (gameState.paddleX =
-  (canvas.width - gameState.paddleWidth) / 2);
+gameState.forceY = gameState.forceX * -1;
+gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 
 // Create bricks
 for (var c = 0; c < gameState.brickColumnCount; c++) {
@@ -42,13 +43,19 @@ for (var c = 0; c < gameState.brickColumnCount; c++) {
 function drawBall () {
   // Draw the ball
   ctx.beginPath ();
-  ctx.arc (gameState.x, gameState.y, gameState.ballRadius, 0, Math.PI * 2);
+  ctx.arc (
+    gameState.ballX,
+    gameState.ballY,
+    gameState.ballRadius,
+    0,
+    Math.PI * 2
+  );
   var ballGradient = ctx.createRadialGradient (
-    gameState.x,
-    gameState.y,
+    gameState.ballX,
+    gameState.ballY,
     gameState.ballRadius / 2,
-    gameState.x,
-    gameState.y,
+    gameState.ballX,
+    gameState.ballY,
     gameState.ballRadius
   );
   ballGradient.addColorStop (0, 'white');
@@ -166,12 +173,12 @@ function bricksCollisionDetection () {
       var b = gameState.bricks[c][r];
       if (b.status == 1) {
         if (
-          gameState.x > b.x &&
-          gameState.x < b.x + gameState.brickWidth &&
-          gameState.y > b.y &&
-          gameState.y < b.y + gameState.brickHeight
+          gameState.ballX > b.x &&
+          gameState.ballX < b.x + gameState.brickWidth &&
+          gameState.ballY + gameState.ballRadius > b.y &&
+          gameState.ballY - gameState.ballRadius < b.y + gameState.brickHeight
         ) {
-          gameState.dy = -gameState.dy;
+          gameState.forceY = -gameState.forceY;
           b.status = 0;
           gameState.score++;
           if (
@@ -212,8 +219,8 @@ function mouseMoveHandler (e) {
 
 function moveBall () {
   // Change the ball's location
-  gameState.x += gameState.dx;
-  gameState.y += gameState.dy;
+  gameState.ballX += gameState.forceX;
+  gameState.ballY += gameState.forceY;
 }
 
 function movePaddle () {
@@ -231,39 +238,39 @@ function wallCollisionCheck () {
   // Wall collision check
   // Left and right
   if (
-    gameState.x + gameState.dx > canvas.width - gameState.ballRadius ||
-    gameState.x + gameState.dx < gameState.ballRadius
+    gameState.ballX + gameState.forceX > canvas.width - gameState.ballRadius ||
+    gameState.ballX + gameState.forceX < gameState.ballRadius
   ) {
-    gameState.dx = gameState.dx * -1;
+    gameState.forceX = gameState.forceX * -1;
   }
 
   // Top
-  if (gameState.y + gameState.dy < gameState.ballRadius) {
-    gameState.dy = gameState.dy * -1;
+  if (gameState.ballY + gameState.forceY < gameState.ballRadius) {
+    gameState.forceY = gameState.forceY * -1;
   }
 }
 
 function resetBoard () {
-  gameState.x = canvas.width / 2;
-  gameState.y = canvas.height - 30;
-  gameState.dx = 2;
-  gameState.dy = -2;
+  gameState.ballX = canvas.width / 2;
+  gameState.ballY = canvas.height - 30;
+  gameState.forceX = 2;
+  gameState.forceY = -2;
   gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 }
 
 function paddleCollisionCheck () {
   if (
-    gameState.y + gameState.dy + gameState.ballRadius >
+    gameState.ballY + gameState.forceY + gameState.ballRadius >
     canvas.height - gameState.paddleHeight - gameState.ballRadius
   ) {
     if (
-      gameState.x > gameState.paddleX &&
-      gameState.x < gameState.paddleX + gameState.paddleWidth &&
-      gameState.y + gameState.dy + gameState.ballRadius >
+      gameState.ballX > gameState.paddleX &&
+      gameState.ballX < gameState.paddleX + gameState.paddleWidth &&
+      gameState.ballY + gameState.forceY + gameState.ballRadius >
         canvas.height - gameState.paddleHeight
     ) {
       // Reverse ball direction
-      gameState.dy = gameState.dy * -1;
+      gameState.forceY = gameState.forceY * -1;
 
       // Grow paddle
       //   gameState.paddleWidth = gameState.paddleWidth + 4;
@@ -276,7 +283,7 @@ function paddleCollisionCheck () {
         return;
       }
     } else if (
-      gameState.y + gameState.dy >
+      gameState.ballY + gameState.forceY >
       canvas.height - gameState.ballRadius
     ) {
       gameState.lives--;
