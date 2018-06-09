@@ -224,17 +224,19 @@ function bricksCollisionDetection () {
 }
 
 function keyDownHandler (e) {
-  if (e.keyCode == 39) {
+  if (e.key == 'ArrowRight') {
     rightPressed = true;
-  } else if (e.keyCode == 37) {
+  } else if (e.key == 'ArrowLeft') {
     leftPressed = true;
+  } else if (e.key == 's') {
+    gameState.gameRunning = true;
   }
 }
 
 function keyUpHandler (e) {
-  if (e.keyCode == 39) {
+  if (e.key == 'ArrowRight') {
     rightPressed = false;
-  } else if (e.keyCode == 37) {
+  } else if (e.key == 'ArrowLeft') {
     leftPressed = false;
   }
 }
@@ -261,6 +263,11 @@ function applyBallForce (force) {
 }
 
 function moveBall () {
+  // Only move the ball if the game is running
+  if (!gameState.gameRunning) {
+    return;
+  }
+
   // Change the ball's location
   gameState.ballX += gameState.ballForceX;
   gameState.ballY += gameState.ballForceY;
@@ -342,10 +349,6 @@ function paddleCollisionCheck () {
 }
 
 function draw () {
-  if (!gameState.gameRunning) {
-    return;
-  }
-
   // Clear the canvas
   ctx.clearRect (0, 0, canvas.width, canvas.height);
 
@@ -382,5 +385,5 @@ document.addEventListener ('keyup', keyUpHandler, false);
 
 // Run the loop
 applyBallForce (2);
-gameState.gameRunning = true;
+canvas.focus ();
 draw ();
