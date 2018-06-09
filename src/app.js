@@ -352,7 +352,7 @@ function paddleCollisionCheck () {
       canvas.height - gameState.ballRadius
     ) {
       gameState.lives--;
-      if (!gameState.lives) {
+      if (gameState.lives < 0) {
         gameState.gameRunning = false;
         drawGameOver ();
       } else {
@@ -394,7 +394,6 @@ function draw () {
 }
 
 document.addEventListener ('keydown', keyDownHandler, false);
-// document.addEventListener ('mousemove', mouseMoveHandler, false);
 document.addEventListener ('keyup', keyUpHandler, false);
 
 // Run the loop
