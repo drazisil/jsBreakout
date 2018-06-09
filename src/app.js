@@ -18,9 +18,9 @@ var gameState = {
 
   forceX: 2,
   forceY: 2,
-  ballSpeed: 2,
+  ballSpeed: 0.4,
 
-  brickRowCount: 6,
+  brickRowCount: 8,
   brickColumnCount: 8,
   brickWidth: 75,
   brickHeight: 20,
@@ -272,6 +272,20 @@ function paddleCollisionCheck () {
       // Reverse ball direction
       gameState.forceY = gameState.forceY * -1;
 
+      // speed ball up
+      gameState.ballSpeed++;
+      // if (gameState.forceX > 0) {
+      //   gameState.forceX = gameState.forceX + -gameState.ballSpeed;
+      // } else {
+      //   gameState.forceX = gameState.forceX + gameState.ballSpeed;
+      // }
+
+      // if (gameState.forceY > 0) {
+      //   gameState.forceY = gameState.forceY + gameState.ballSpeed;
+      // } else {
+      //   gameState.forceY = gameState.forceY + -gameState.ballSpeed;
+      // }
+
       // Grow paddle
       //   gameState.paddleWidth = gameState.paddleWidth + 4;
 
@@ -315,9 +329,9 @@ function draw () {
 
   wallCollisionCheck ();
 
-  paddleCollisionCheck ();
-
   moveBall ();
+
+  paddleCollisionCheck ();
 
   movePaddle ();
 
