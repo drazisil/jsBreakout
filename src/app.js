@@ -352,8 +352,8 @@ function paddleCollisionCheck () {
       canvas.height - gameState.ballRadius
     ) {
       gameState.lives--;
+      gameState.gameRunning = false;
       if (gameState.lives < 0) {
-        gameState.gameRunning = false;
         drawGameOver ();
       } else {
         resetBoard ();
@@ -365,10 +365,6 @@ function paddleCollisionCheck () {
 function draw () {
   // Clear the canvas
   ctx.clearRect (0, 0, canvas.width, canvas.height);
-
-  // draw the background
-  //   ctx.fillStyle = 'black';
-  //   ctx.fillRect (0, 0, canvas.width, canvas.height);
 
   drawBricks ();
 
