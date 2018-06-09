@@ -21,6 +21,8 @@ var gameConfig = {
 
     paddle: ['red', 'white', 'blue'],
   },
+  ballSpeedMultiplier: 0.3,
+  paddleWidth: 150,
 };
 
 var gameState = {
@@ -204,7 +206,8 @@ function bricksCollisionDetection () {
           gameState.ballDirectionY = gameState.ballDirectionY * -1;
           gameState.ballForceY = -gameState.ballForceY;
           if (r % 2 == 1 && r != 0 && r < gameState.highestBrickRowBroken) {
-            gameState.ballSpeed = gameState.ballSpeed + 0.4;
+            gameState.ballSpeed =
+              gameState.ballSpeed + gameConfig.ballSpeedMultiplier;
             applyBallForce (gameState.ballSpeed);
           }
           gameState.highestBrickRowBroken = r;
@@ -298,14 +301,19 @@ function wallCollisionCheck () {
   // Top
   if (gameState.ballY + gameState.ballForceY < gameState.ballRadius) {
     gameState.ballForceY = gameState.ballForceY * -1;
+    if (gameState.topWasHit === false) {
+      gameState.topWasHit = true;
+      gameState.paddleWidth = gameState.paddleWidth / 2;
+    }
   }
 }
 
 function resetBoard () {
   gameState.ballX = canvas.width / 2;
   gameState.ballY = canvas.height - 30;
-  gameState.ballForceX = 2;
-  gameState.ballForceY = -2;
+  applyBallForce (2);
+  gameState.topWasHit = false;
+  gameState.paddleWidth = gameConfig.paddleWidth;
   gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 }
 
