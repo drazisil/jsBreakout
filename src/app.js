@@ -5,9 +5,27 @@ var ctx = canvas.getContext ('2d');
 var rightPressed = false;
 var leftPressed = false;
 
+var gameConfig = {
+  colors: {
+    ball: ['white', 'red'],
+    bricks: {
+      0: ['red', 'red'],
+      1: ['red', 'red'],
+      2: ['orange', 'orange'],
+      3: ['orange', 'orange'],
+      4: ['green', 'green'],
+      5: ['green', 'green'],
+      6: ['yellow', 'yellow'],
+      7: ['yellow', 'yellow'],
+    },
+
+    paddle: ['red', 'white', 'blue'],
+  },
+};
+
 var gameState = {
   gameRunning: false,
-  paddleWidth: 75,
+  paddleWidth: 150,
   paddleHeight: 20,
   score: 0,
   lives: 3,
@@ -16,9 +34,12 @@ var gameState = {
   ballX: canvas.width / 2,
   ballY: canvas.height - 30,
 
-  forceX: 2,
-  forceY: 2,
-  ballSpeed: 0.4,
+  topWasHit: false,
+  ballForceX: 0,
+  ballForceY: 0,
+  ballSpeed: 2,
+  ballDirectionX: 1,
+  ballDirectionY: -1,
 
   brickRowCount: 8,
   brickColumnCount: 8,
@@ -27,9 +48,10 @@ var gameState = {
   brickPadding: 10,
   brickOffsetTop: 30,
   brickOffsetLeft: 30,
+  highestBrickRowBroken: 8,
 };
 
-gameState.forceY = gameState.forceX * -1;
+gameState.ballForceY = gameState.ballForceX * -1;
 gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 
 // Create bricks
@@ -58,8 +80,8 @@ function drawBall () {
     gameState.ballY,
     gameState.ballRadius
   );
-  ballGradient.addColorStop (0, 'white');
-  ballGradient.addColorStop (1, 'red');
+  ballGradient.addColorStop (0, gameConfig.colors.ball[0]);
+  ballGradient.addColorStop (1, gameConfig.colors.ball[1]);
   ctx.fillStyle = ballGradient;
 
   ctx.fill ();
@@ -80,9 +102,9 @@ function drawPaddle () {
     gameState.paddleX,
     canvas.height
   );
-  paddleGradient.addColorStop (0, 'red');
-  paddleGradient.addColorStop (0.5, 'blue');
-  paddleGradient.addColorStop (1, 'red');
+  paddleGradient.addColorStop (0, gameConfig.colors.paddle[0]);
+  paddleGradient.addColorStop (0.5, gameConfig.colors.paddle[1]);
+  paddleGradient.addColorStop (1, gameConfig.colors.paddle[2]);
   ctx.fillStyle = paddleGradient;
 
   ctx.fill ();
@@ -111,8 +133,8 @@ function drawBricks () {
           brickX,
           brickY + gameState.brickHeight
         );
-        gradients[c][r].addColorStop (0, 'red');
-        gradients[c][r].addColorStop (1, 'blue');
+        gradients[c][r].addColorStop (0, gameConfig.colors.bricks[r][0]);
+        gradients[c][r].addColorStop (1, gameConfig.colors.bricks[r][1]);
         ctx.fillStyle = gradients[c][r];
 
         ctx.fill ();
@@ -178,7 +200,14 @@ function bricksCollisionDetection () {
           gameState.ballY + gameState.ballRadius > b.y &&
           gameState.ballY - gameState.ballRadius < b.y + gameState.brickHeight
         ) {
-          gameState.forceY = -gameState.forceY;
+          // A brick was hit
+          gameState.ballDirectionY = gameState.ballDirectionY * -1;
+          gameState.ballForceY = -gameState.ballForceY;
+          if (r % 2 == 1 && r != 0 && r < gameState.highestBrickRowBroken) {
+            gameState.ballSpeed = gameState.ballSpeed + 0.4;
+            applyBallForce (gameState.ballSpeed);
+          }
+          gameState.highestBrickRowBroken = r;
           b.status = 0;
           gameState.score++;
           if (
@@ -217,10 +246,24 @@ function mouseMoveHandler (e) {
   }
 }
 
+function applyBallForce (force) {
+  if (gameState.ballDirectionX < 0) {
+    gameState.ballForceX = -force;
+  } else {
+    gameState.ballForceX = force;
+  }
+
+  if (gameState.ballForceY < 0) {
+    gameState.ballForceY = -force;
+  } else {
+    gameState.ballForceY = force;
+  }
+}
+
 function moveBall () {
   // Change the ball's location
-  gameState.ballX += gameState.forceX;
-  gameState.ballY += gameState.forceY;
+  gameState.ballX += gameState.ballForceX;
+  gameState.ballY += gameState.ballForceY;
 }
 
 function movePaddle () {
@@ -238,56 +281,43 @@ function wallCollisionCheck () {
   // Wall collision check
   // Left and right
   if (
-    gameState.ballX + gameState.forceX > canvas.width - gameState.ballRadius ||
-    gameState.ballX + gameState.forceX < gameState.ballRadius
+    gameState.ballX + gameState.ballForceX >
+      canvas.width - gameState.ballRadius ||
+    gameState.ballX + gameState.ballForceX < gameState.ballRadius
   ) {
-    gameState.forceX = gameState.forceX * -1;
+    gameState.ballForceX = gameState.ballForceX * -1;
   }
 
   // Top
-  if (gameState.ballY + gameState.forceY < gameState.ballRadius) {
-    gameState.forceY = gameState.forceY * -1;
+  if (gameState.ballY + gameState.ballForceY < gameState.ballRadius) {
+    gameState.ballForceY = gameState.ballForceY * -1;
   }
 }
 
 function resetBoard () {
   gameState.ballX = canvas.width / 2;
   gameState.ballY = canvas.height - 30;
-  gameState.forceX = 2;
-  gameState.forceY = -2;
+  gameState.ballForceX = 2;
+  gameState.ballForceY = -2;
   gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
 }
 
 function paddleCollisionCheck () {
   if (
-    gameState.ballY + gameState.forceY + gameState.ballRadius >
+    gameState.ballY + gameState.ballForceY + gameState.ballRadius >
     canvas.height - gameState.paddleHeight - gameState.ballRadius
   ) {
     if (
       gameState.ballX > gameState.paddleX &&
       gameState.ballX < gameState.paddleX + gameState.paddleWidth &&
-      gameState.ballY + gameState.forceY + gameState.ballRadius >
+      gameState.ballY + gameState.ballForceY + gameState.ballRadius >
         canvas.height - gameState.paddleHeight
     ) {
       // Reverse ball direction
-      gameState.forceY = gameState.forceY * -1;
+      gameState.ballForceY = gameState.ballForceY * -1;
 
       // speed ball up
-      gameState.ballSpeed++;
-      // if (gameState.forceX > 0) {
-      //   gameState.forceX = gameState.forceX + -gameState.ballSpeed;
-      // } else {
-      //   gameState.forceX = gameState.forceX + gameState.ballSpeed;
-      // }
-
-      // if (gameState.forceY > 0) {
-      //   gameState.forceY = gameState.forceY + gameState.ballSpeed;
-      // } else {
-      //   gameState.forceY = gameState.forceY + -gameState.ballSpeed;
-      // }
-
-      // Grow paddle
-      //   gameState.paddleWidth = gameState.paddleWidth + 4;
+      // gameState.ballSpeed++;
 
       // If paddle is bigger then screen, end game
       if (gameState.paddleWidth > canvas.width) {
@@ -297,7 +327,7 @@ function paddleCollisionCheck () {
         return;
       }
     } else if (
-      gameState.ballY + gameState.forceY >
+      gameState.ballY + gameState.ballForceY >
       canvas.height - gameState.ballRadius
     ) {
       gameState.lives--;
@@ -347,9 +377,10 @@ function draw () {
 }
 
 document.addEventListener ('keydown', keyDownHandler, false);
-document.addEventListener ('mousemove', mouseMoveHandler, false);
+// document.addEventListener ('mousemove', mouseMoveHandler, false);
 document.addEventListener ('keyup', keyUpHandler, false);
 
 // Run the loop
+applyBallForce (2);
 gameState.gameRunning = true;
 draw ();
