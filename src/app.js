@@ -7,7 +7,7 @@ var leftPressed = false;
 
 var gameState = {
   gameRunning: false,
-  paddleWidth: parseInt (document.getElementById ('paddleWidth').value),
+  paddleWidth: 75,
   paddleHeight: 20,
   score: 0,
   lives: 3,
@@ -19,8 +19,8 @@ var gameState = {
   dx: 2,
   dy: 2,
 
-  brickRowCount: 3,
-  brickColumnCount: 5,
+  brickRowCount: 6,
+  brickColumnCount: 8,
   brickWidth: 75,
   brickHeight: 20,
   brickPadding: 10,
@@ -43,7 +43,18 @@ function drawBall () {
   // Draw the ball
   ctx.beginPath ();
   ctx.arc (gameState.x, gameState.y, gameState.ballRadius, 0, Math.PI * 2);
-  ctx.fillStyle = '#0095DD';
+  var ballGradient = ctx.createRadialGradient (
+    gameState.x,
+    gameState.y,
+    gameState.ballRadius / 2,
+    gameState.x,
+    gameState.y,
+    gameState.ballRadius
+  );
+  ballGradient.addColorStop (0, 'white');
+  ballGradient.addColorStop (1, 'red');
+  ctx.fillStyle = ballGradient;
+
   ctx.fill ();
   ctx.closePath ();
 }
@@ -56,13 +67,25 @@ function drawPaddle () {
     gameState.paddleWidth,
     gameState.paddleHeight
   );
-  ctx.fillStyle = '#0095DD';
+  var paddleGradient = ctx.createLinearGradient (
+    gameState.paddleX,
+    canvas.height - gameState.paddleHeight,
+    gameState.paddleX,
+    canvas.height
+  );
+  paddleGradient.addColorStop (0, 'red');
+  paddleGradient.addColorStop (0.5, 'blue');
+  paddleGradient.addColorStop (1, 'red');
+  ctx.fillStyle = paddleGradient;
+
   ctx.fill ();
   ctx.closePath ();
 }
 
 function drawBricks () {
+  gradients = [];
   for (var c = 0; c < gameState.brickColumnCount; c++) {
+    gradients[c] = [];
     for (var r = 0; r < gameState.brickRowCount; r++) {
       if (gameState.bricks[c][r].status == 1) {
         var brickX =
@@ -75,7 +98,16 @@ function drawBricks () {
         gameState.bricks[c][r].y = brickY;
         ctx.beginPath ();
         ctx.rect (brickX, brickY, gameState.brickWidth, gameState.brickHeight);
-        ctx.fillStyle = '#0095DD';
+        gradients[c][r] = ctx.createLinearGradient (
+          brickX,
+          brickY,
+          brickX,
+          brickY + gameState.brickHeight
+        );
+        gradients[c][r].addColorStop (0, 'red');
+        gradients[c][r].addColorStop (1, 'blue');
+        ctx.fillStyle = gradients[c][r];
+
         ctx.fill ();
         ctx.closePath ();
       }
@@ -102,19 +134,19 @@ function resetGame () {
 
 function drawScore () {
   ctx.font = '16px Arial';
-  ctx.fillStyle = '#0095DD';
+  ctx.fillStyle = 'white';
   ctx.fillText ('Score: ' + gameState.score, 8, 20);
 }
 
 function drawLives () {
   ctx.font = '16px Arial';
-  ctx.fillStyle = '#0095DD';
+  ctx.fillStyle = 'white';
   ctx.fillText ('Lives: ' + gameState.lives, canvas.width - 65, 20);
 }
 
 function drawGameOver () {
   ctx.font = '16px Arial';
-  ctx.fillStyle = '#0095DD';
+  ctx.fillStyle = 'white';
   ctx.fillText ('Game Over!', canvas.width / 2, canvas.height / 2);
 }
 
@@ -234,14 +266,15 @@ function paddleCollisionCheck () {
       gameState.dy = gameState.dy * -1;
 
       // Grow paddle
-      gameState.paddleWidth = gameState.paddleWidth + 4;
+      //   gameState.paddleWidth = gameState.paddleWidth + 4;
+
+      // If paddle is bigger then screen, end game
       if (gameState.paddleWidth > canvas.width) {
         gameState.paddleWidth = canvas.width;
         gameState.gameRunning = false;
         drawGameOver ();
         return;
       }
-      document.getElementById ('paddleWidth').value = gameState.paddleWidth;
     } else if (
       gameState.y + gameState.dy >
       canvas.height - gameState.ballRadius
@@ -265,6 +298,10 @@ function draw () {
   // Clear the canvas
   ctx.clearRect (0, 0, canvas.width, canvas.height);
 
+  // draw the background
+  //   ctx.fillStyle = 'black';
+  //   ctx.fillRect (0, 0, canvas.width, canvas.height);
+
   drawBricks ();
 
   drawBall ();
@@ -287,14 +324,6 @@ function draw () {
 
   requestAnimationFrame (draw);
 }
-
-document.getElementById ('paddleWidth').addEventListener ('input', e => {
-  if (e.target.value > canvas.width - 20) {
-    e.target.value = canvas.width - 20;
-  } else {
-    gameState.paddleWidth = parseInt (e.target.value);
-  }
-});
 
 document.addEventListener ('keydown', keyDownHandler, false);
 document.addEventListener ('mousemove', mouseMoveHandler, false);
