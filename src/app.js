@@ -1,12 +1,40 @@
 // Define a new component called todo-item
 Vue.component ('mycanvas', {
   template: '<canvas id="myCanvas" width="720" height="480" />',
+  methods: {
+    keyDownListener: function (e) {
+      if (e.key == 'ArrowRight') {
+        store.commit ('toggleRightPressed', true);
+      } else if (e.key == 'ArrowLeft') {
+        store.commit ('toggleLeftPressed', true);
+      } else if (e.key == 's') {
+        if (store.state.lives <= 0) {
+          resetGame ();
+        }
+        store.commit ('toggleGameRunning', true);
+      }
+    },
+    keyUpListener: function (e) {
+      if (e.key == 'ArrowRight') {
+        store.commit ('toggleRightPressed', false);
+      } else if (e.key == 'ArrowLeft') {
+        store.commit ('toggleLeftPressed', false);
+      }
+    },
+  },
+  created: function () {
+    document.addEventListener ('keyup', this.keyUpListener);
+    document.addEventListener ('keydown', this.keyDownListener);
+  },
+  destroyed: function () {
+    document.removeEventListener ('keyup', this.keyUpListener);
+    document.removeEventListener ('keydown', this.keyDownListener);
+  },
 });
 
 const store = new Vuex.Store ({
   state: {
-    count: 0,
-    gameRunning: false,
+    isGameRunning: false,
     paddleWidth: 150,
     paddleHeight: 20,
     score: 0,
@@ -16,7 +44,7 @@ const store = new Vuex.Store ({
     ballX: 0,
     ballY: 0,
 
-    topWasHit: false,
+    wasTopWallHit: false,
     ballForceX: 0,
     ballForceY: 0,
     ballSpeed: 2,
@@ -31,6 +59,8 @@ const store = new Vuex.Store ({
     brickOffsetTop: 30,
     brickOffsetLeft: 30,
     highestBrickRowBroken: 8,
+    isLeftPressed: false,
+    isRightPressed: false,
     config: {
       colors: {
         ball: ['white', 'red'],
@@ -52,23 +82,56 @@ const store = new Vuex.Store ({
     },
   },
   mutations: {
-    increment (state) {
-      state.count++;
-    },
-    updateBallX (state, ballX) {
+    setBallX (state, ballX) {
       state.ballX = ballX;
     },
-    updateBallY (state, ballY) {
+    setBallY (state, ballY) {
       state.ballY = ballY;
     },
-    updateBallForceX (state, ballForceX) {
+    setBallDirectionX (state, ballDirection) {
+      state.ballDirection = ballDirection;
+    },
+    setBallForceX (state, ballForceX) {
       state.ballForceX = ballForceX;
     },
-    updateBallForceY (state, ballForceY) {
+    setBallForceY (state, ballForceY) {
       state.ballForceY = ballForceY;
     },
-    updatePaddleX (state, paddleX) {
+    setBallSpeed (state, ballSpeed) {
+      state.ballSpeed = ballSpeed;
+    },
+    setPaddleX (state, paddleX) {
       state.paddleX = paddleX;
+    },
+    setPaddleWidth (state, paddleWidth) {
+      state.paddleWidth = paddleWidth;
+    },
+    setLives (state, lives) {
+      state.lives = lives;
+    },
+    setScore (state, score) {
+      state.score = score;
+    },
+    toggleGameRunning (state, isGameRunning) {
+      state.isGameRunning = isGameRunning;
+    },
+    toggleLeftPressed (state, isKeyPressed) {
+      state.isLeftPressed = isKeyPressed;
+    },
+    toggleRightPressed (state, isKeyPressed) {
+      state.isRightPressed = isKeyPressed;
+    },
+    toggleTopWallHit (state, wasTopWallHit) {
+      state.wasTopWallHit = wasTopWallHit;
+    },
+    setHighestBrickBroken (state, highestBrickRowBroken) {
+      state.highestBrickRowBroken = highestBrickRowBroken;
+    },
+    incrementScore (state) {
+      state.score++;
+    },
+    deincrementLives (state) {
+      state.lives--;
     },
   },
 });
@@ -84,9 +147,6 @@ var app = new Vue ({
 var canvas = document.getElementById ('myCanvas');
 var ctx = canvas.getContext ('2d');
 
-var rightPressed = false;
-var leftPressed = false;
-
 // Create bricks
 for (var c = 0; c < store.state.brickColumnCount; c++) {
   store.state.bricks[c] = [];
@@ -94,9 +154,11 @@ for (var c = 0; c < store.state.brickColumnCount; c++) {
     store.state.bricks[c][r] = {x: 0, y: 0, status: 1};
   }
 }
-
+/**
+ *Draws the ball on the canvas
+ *
+ */
 function drawBall () {
-  // Draw the ball
   ctx.beginPath ();
   ctx.arc (
     store.state.ballX,
@@ -120,7 +182,10 @@ function drawBall () {
   ctx.fill ();
   ctx.closePath ();
 }
-
+/**
+ * Draws the paddle on the canvar
+ *
+ */
 function drawPaddle () {
   ctx.beginPath ();
   ctx.rect (
@@ -143,7 +208,10 @@ function drawPaddle () {
   ctx.fill ();
   ctx.closePath ();
 }
-
+/**
+ * Draws the bricks on the canvas
+ *
+ */
 function drawBricks () {
   gradients = [];
   for (var c = 0; c < store.state.brickColumnCount; c++) {
@@ -187,7 +255,10 @@ function drawBricks () {
     }
   }
 }
-
+/**
+ * Switchs the status of all bricks to on.
+ *
+ */
 function resetBricks () {
   for (var c = 0; c < store.state.brickColumnCount; c++) {
     for (var r = 0; r < store.state.brickRowCount; r++) {
@@ -195,34 +266,48 @@ function resetBricks () {
     }
   }
 }
-
+/**
+ * Reset the game state to the starting state
+ *
+ */
 function resetGame () {
   resetBricks ();
-  store.state.score = 0;
-  store.state.lives = 3;
+  store.commit ('setScore', 0);
+  store.commit ('setLives', 3);
   resetBoard ();
-  store.state.gameRunning = true;
   draw ();
 }
-
+/**
+ * Draw the score on the canvas
+ *
+ */
 function drawScore () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
   ctx.fillText ('Score: ' + store.state.score, 8, 20);
 }
-
+/**
+ * Draw the number of lives left on the canvas
+ *
+ */
 function drawLives () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
   ctx.fillText ('Lives: ' + store.state.lives, canvas.width - 65, 20);
 }
-
+/**
+ * Draw the game over meesage on the canvas
+ *
+ */
 function drawGameOver () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
   ctx.fillText ('Game Over!', canvas.width / 2, canvas.height / 2);
 }
-
+/**
+ * Draw the game one message on the canvas
+ *
+ */
 function drawYouWin () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
@@ -232,7 +317,10 @@ function drawYouWin () {
     canvas.height / 2
   );
 }
-
+/**
+ * Checks for ball collision with bricks and turns off brick if hit
+ *
+ */
 function bricksCollisionDetection () {
   for (var c = 0; c < store.state.brickColumnCount; c++) {
     for (var r = 0; r < store.state.brickRowCount; r++) {
@@ -246,21 +334,23 @@ function bricksCollisionDetection () {
             b.y + store.state.brickHeight
         ) {
           // A brick was hit
-          store.state.ballDirectionY = store.state.ballDirectionY * -1;
-          store.state.ballForceY = -store.state.ballForceY;
+          store.commit ('setBallDirectionX', store.state.ballDirectionX * -1);
+          store.commit ('setBallForceY', -store.state.ballForceY);
           if (r % 2 == 1 && r != 0 && r < store.state.highestBrickRowBroken) {
-            store.state.ballSpeed =
-              store.state.ballSpeed + store.state.config.ballSpeedMultiplier;
+            store.commit (
+              'setBallSpeed',
+              store.state.ballSpeed + store.state.config.ballSpeedMultiplier
+            );
             applyBallForce (store.state.ballSpeed);
           }
-          store.state.highestBrickRowBroken = r;
+          store.commit ('setHighestBrickBroken', r);
           b.status = 0;
-          store.state.score++;
+          store.commit ('incrementScore');
           if (
             store.state.score ==
             store.state.brickRowCount * store.state.brickColumnCount
           ) {
-            store.state.gameRunning = false;
+            store.commit ('toggleGameRunning', false);
             drawYouWin ();
           }
         }
@@ -269,101 +359,88 @@ function bricksCollisionDetection () {
   }
 }
 
-function keyDownHandler (e) {
-  if (e.key == 'ArrowRight') {
-    rightPressed = true;
-  } else if (e.key == 'ArrowLeft') {
-    leftPressed = true;
-  } else if (e.key == 's') {
-    store.state.gameRunning = true;
-  }
-}
-
-function keyUpHandler (e) {
-  if (e.key == 'ArrowRight') {
-    rightPressed = false;
-  } else if (e.key == 'ArrowLeft') {
-    leftPressed = false;
-  }
-}
-
-function mouseMoveHandler (e) {
-  var relativeX = e.clientX - canvas.offsetLeft;
-  if (relativeX > 0 && relativeX < canvas.width) {
-    store.state.paddleX = relativeX - store.state.paddleWidth / 2;
-  }
-}
-
 function applyBallForce (force) {
   if (store.state.ballDirectionX < 0) {
-    store.state.ballForceX = -force;
+    store.commit ('setBallForceX', -force);
   } else {
-    store.state.ballForceX = force;
+    store.commit ('setBallForceX', force);
   }
 
   if (store.state.ballForceY < 0) {
-    store.state.ballForceY = -force;
+    store.commit ('setBallForceY', -force);
   } else {
-    store.state.ballForceY = force;
+    store.commit ('setBallForceY', force);
   }
 }
 
 function moveBall () {
   // Only move the ball if the game is running
-  if (!store.state.gameRunning) {
+  if (!store.state.isGameRunning) {
+    return;
+  }
+
+  if (store.state.lives <= 0) {
     return;
   }
 
   // Change the ball's location
-  store.commit ('updateBallX', store.state.ballX + store.state.ballForceX);
-  store.commit ('updateBallY', store.state.ballY + store.state.ballForceY);
+  store.commit ('setBallX', store.state.ballX + store.state.ballForceX);
+  store.commit ('setBallY', store.state.ballY + store.state.ballForceY);
 }
 
 function movePaddle () {
+  if (store.state.lives <= 0) {
+    return;
+  }
+
   if (
-    rightPressed &&
+    store.state.isRightPressed &&
     store.state.paddleX < canvas.width - store.state.paddleWidth
   ) {
-    store.state.paddleX += 7;
-    if (!store.state.gameRunning) {
-      store.state.ballX += 7;
+    store.commit ('setPaddleX', store.state.paddleX + 7);
+    if (!store.state.isGameRunning) {
+      store.commit ('setBallX', store.state.ballX + 7);
     }
-  } else if (leftPressed && store.state.paddleX > 0) {
-    store.state.paddleX -= 7;
-    if (!store.state.gameRunning) {
-      store.state.ballX -= 7;
+  } else if (store.state.isLeftPressed && store.state.paddleX > 0) {
+    store.commit ('setPaddleX', store.state.paddleX - 7);
+    if (!store.state.isGameRunning) {
+      store.commit ('setBallX', store.state.ballX - 7);
     }
   }
 }
 
-function wallCollisionCheck () {
-  // Wall collision check
-  // Left and right
+function checkCollisionSideWalls () {
   if (
     store.state.ballX + store.state.ballForceX >
       canvas.width - store.state.ballRadius ||
     store.state.ballX + store.state.ballForceX < store.state.ballRadius
   ) {
-    store.state.ballForceX = store.state.ballForceX * -1;
+    store.commit ('setBallForceX', store.state.ballForceX * -1);
   }
+}
 
-  // Top
+function checkCollisionTopWall () {
   if (store.state.ballY + store.state.ballForceY < store.state.ballRadius) {
-    store.state.ballForceY = store.state.ballForceY * -1;
+    store.commit ('setBallForceY', store.state.ballForceY * -1);
     if (store.state.topWasHit === false) {
-      store.state.topWasHit = true;
-      store.state.paddleWidth = store.state.paddleWidth / 2;
+      store.commit ('toggleTopWallHit', true);
+      store.commit ('setPaddleWidth', store.state.paddleWidth / 2);
     }
   }
 }
 
+function wallCollisionCheck () {
+  checkCollisionSideWalls ();
+  checkCollisionTopWall ();
+}
+
 function resetBoard () {
-  store.state.ballX = canvas.width / 2;
-  store.state.ballY = canvas.height - 30;
+  store.commit ('setBallX', canvas.width / 2);
+  store.commit ('setBallY', canvas.height - 30);
   applyBallForce (2);
-  store.state.topWasHit = false;
-  store.state.paddleWidth = store.state.config.paddleWidth;
-  store.state.paddleX = (canvas.width - store.state.paddleWidth) / 2;
+  store.commit ('toggleTopWallHit', false);
+  store.commit ('setPaddleWidth', store.state.config.paddleWidth);
+  store.commit ('setPaddleX', (canvas.width - store.state.paddleWidth) / 2);
 }
 
 function paddleCollisionCheck () {
@@ -378,25 +455,16 @@ function paddleCollisionCheck () {
         canvas.height - store.state.paddleHeight
     ) {
       // Reverse ball direction
-      store.state.ballForceY = store.state.ballForceY * -1;
-
-      // speed ball up
-      // store.state.ballSpeed++;
-
-      // If paddle is bigger then screen, end game
-      if (store.state.paddleWidth > canvas.width) {
-        store.state.paddleWidth = canvas.width;
-        store.state.gameRunning = false;
-        drawGameOver ();
-        return;
-      }
+      store.commit ('setBallForceY', store.state.ballForceY * -1);
     } else if (
       store.state.ballY + store.state.ballForceY >
       canvas.height - store.state.ballRadius
     ) {
-      store.state.lives--;
-      store.state.gameRunning = false;
-      if (store.state.lives < 0) {
+      if (store.state.lives > 0) {
+        store.commit ('deincrementLives');
+      }
+      store.commit ('toggleGameRunning', false);
+      if (store.state.lives <= 0) {
         drawGameOver ();
       } else {
         resetBoard ();
@@ -432,15 +500,12 @@ function draw () {
   requestAnimationFrame (draw);
 }
 
-document.addEventListener ('keydown', keyDownHandler, false);
-document.addEventListener ('keyup', keyUpHandler, false);
-
 // set initial computed state
 
-store.commit ('updateBallX', canvas.width / 2);
-store.commit ('updateBallY', canvas.height - 30);
-store.commit ('updateBallForceX', store.state.ballForceX * -1);
-store.commit ('updatePaddleX', (canvas.width - store.state.paddleWidth) / 2);
+store.commit ('setBallX', canvas.width / 2);
+store.commit ('setBallY', canvas.height - 30);
+store.commit ('setBallForceX', store.state.ballForceX * -1);
+store.commit ('setPaddleX', (canvas.width - store.state.paddleWidth) / 2);
 
 // Run the loop
 applyBallForce (2);
