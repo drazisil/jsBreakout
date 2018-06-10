@@ -31,16 +31,44 @@ const store = new Vuex.Store ({
     brickOffsetTop: 30,
     brickOffsetLeft: 30,
     highestBrickRowBroken: 8,
+    config: {
+      colors: {
+        ball: ['white', 'red'],
+        bricks: {
+          0: ['red', 'red'],
+          1: ['red', 'red'],
+          2: ['orange', 'orange'],
+          3: ['orange', 'orange'],
+          4: ['green', 'green'],
+          5: ['green', 'green'],
+          6: ['yellow', 'yellow'],
+          7: ['yellow', 'yellow'],
+        },
+
+        paddle: ['red', 'white', 'blue'],
+      },
+      ballSpeedMultiplier: 0.3,
+      paddleWidth: 150,
+    },
   },
   mutations: {
     increment (state) {
       state.count++;
     },
-    updateBallX (state, x) {
-      state.ballX = x;
+    updateBallX (state, ballX) {
+      state.ballX = ballX;
     },
-    updateBallY (state, y) {
-      state.ballY = y;
+    updateBallY (state, ballY) {
+      state.ballY = ballY;
+    },
+    updateBallForceX (state, ballForceX) {
+      state.ballForceX = ballForceX;
+    },
+    updateBallForceY (state, ballForceY) {
+      state.ballForceY = ballForceY;
+    },
+    updatePaddleX (state, paddleX) {
+      state.paddleX = paddleX;
     },
   },
 });
@@ -59,62 +87,11 @@ var ctx = canvas.getContext ('2d');
 var rightPressed = false;
 var leftPressed = false;
 
-var gameConfig = {
-  colors: {
-    ball: ['white', 'red'],
-    bricks: {
-      0: ['red', 'red'],
-      1: ['red', 'red'],
-      2: ['orange', 'orange'],
-      3: ['orange', 'orange'],
-      4: ['green', 'green'],
-      5: ['green', 'green'],
-      6: ['yellow', 'yellow'],
-      7: ['yellow', 'yellow'],
-    },
-
-    paddle: ['red', 'white', 'blue'],
-  },
-  ballSpeedMultiplier: 0.3,
-  paddleWidth: 150,
-};
-
-var gameState = {
-  gameRunning: false,
-  paddleWidth: 150,
-  paddleHeight: 20,
-  score: 0,
-  lives: 3,
-  bricks: [],
-  ballRadius: 10,
-  ballX: canvas.width / 2,
-  ballY: canvas.height - 30,
-
-  topWasHit: false,
-  ballForceX: 0,
-  ballForceY: 0,
-  ballSpeed: 2,
-  ballDirectionX: 1,
-  ballDirectionY: -1,
-
-  brickRowCount: 8,
-  brickColumnCount: 8,
-  brickWidth: 75,
-  brickHeight: 20,
-  brickPadding: 10,
-  brickOffsetTop: 30,
-  brickOffsetLeft: 30,
-  highestBrickRowBroken: 8,
-};
-
-gameState.ballForceY = gameState.ballForceX * -1;
-gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
-
 // Create bricks
-for (var c = 0; c < gameState.brickColumnCount; c++) {
-  gameState.bricks[c] = [];
-  for (var r = 0; r < gameState.brickRowCount; r++) {
-    gameState.bricks[c][r] = {x: 0, y: 0, status: 1};
+for (var c = 0; c < store.state.brickColumnCount; c++) {
+  store.state.bricks[c] = [];
+  for (var r = 0; r < store.state.brickRowCount; r++) {
+    store.state.bricks[c][r] = {x: 0, y: 0, status: 1};
   }
 }
 
@@ -122,22 +99,22 @@ function drawBall () {
   // Draw the ball
   ctx.beginPath ();
   ctx.arc (
-    gameState.ballX,
-    gameState.ballY,
-    gameState.ballRadius,
+    store.state.ballX,
+    store.state.ballY,
+    store.state.ballRadius,
     0,
     Math.PI * 2
   );
   var ballGradient = ctx.createRadialGradient (
-    gameState.ballX,
-    gameState.ballY,
-    gameState.ballRadius / 2,
-    gameState.ballX,
-    gameState.ballY,
-    gameState.ballRadius
+    store.state.ballX,
+    store.state.ballY,
+    store.state.ballRadius / 2,
+    store.state.ballX,
+    store.state.ballY,
+    store.state.ballRadius
   );
-  ballGradient.addColorStop (0, gameConfig.colors.ball[0]);
-  ballGradient.addColorStop (1, gameConfig.colors.ball[1]);
+  ballGradient.addColorStop (0, store.state.config.colors.ball[0]);
+  ballGradient.addColorStop (1, store.state.config.colors.ball[1]);
   ctx.fillStyle = ballGradient;
 
   ctx.fill ();
@@ -147,20 +124,20 @@ function drawBall () {
 function drawPaddle () {
   ctx.beginPath ();
   ctx.rect (
-    gameState.paddleX,
-    canvas.height - gameState.paddleHeight,
-    gameState.paddleWidth,
-    gameState.paddleHeight
+    store.state.paddleX,
+    canvas.height - store.state.paddleHeight,
+    store.state.paddleWidth,
+    store.state.paddleHeight
   );
   var paddleGradient = ctx.createLinearGradient (
-    gameState.paddleX,
-    canvas.height - gameState.paddleHeight,
-    gameState.paddleX,
+    store.state.paddleX,
+    canvas.height - store.state.paddleHeight,
+    store.state.paddleX,
     canvas.height
   );
-  paddleGradient.addColorStop (0, gameConfig.colors.paddle[0]);
-  paddleGradient.addColorStop (0.5, gameConfig.colors.paddle[1]);
-  paddleGradient.addColorStop (1, gameConfig.colors.paddle[2]);
+  paddleGradient.addColorStop (0, store.state.config.colors.paddle[0]);
+  paddleGradient.addColorStop (0.5, store.state.config.colors.paddle[1]);
+  paddleGradient.addColorStop (1, store.state.config.colors.paddle[2]);
   ctx.fillStyle = paddleGradient;
 
   ctx.fill ();
@@ -169,28 +146,39 @@ function drawPaddle () {
 
 function drawBricks () {
   gradients = [];
-  for (var c = 0; c < gameState.brickColumnCount; c++) {
+  for (var c = 0; c < store.state.brickColumnCount; c++) {
     gradients[c] = [];
-    for (var r = 0; r < gameState.brickRowCount; r++) {
-      if (gameState.bricks[c][r].status == 1) {
+    for (var r = 0; r < store.state.brickRowCount; r++) {
+      if (store.state.bricks[c][r].status == 1) {
         var brickX =
-          c * (gameState.brickWidth + gameState.brickPadding) +
-          gameState.brickOffsetLeft;
+          c * (store.state.brickWidth + store.state.brickPadding) +
+          store.state.brickOffsetLeft;
         var brickY =
-          r * (gameState.brickHeight + gameState.brickPadding) +
-          gameState.brickOffsetTop;
-        gameState.bricks[c][r].x = brickX;
-        gameState.bricks[c][r].y = brickY;
+          r * (store.state.brickHeight + store.state.brickPadding) +
+          store.state.brickOffsetTop;
+        store.state.bricks[c][r].x = brickX;
+        store.state.bricks[c][r].y = brickY;
         ctx.beginPath ();
-        ctx.rect (brickX, brickY, gameState.brickWidth, gameState.brickHeight);
+        ctx.rect (
+          brickX,
+          brickY,
+          store.state.brickWidth,
+          store.state.brickHeight
+        );
         gradients[c][r] = ctx.createLinearGradient (
           brickX,
           brickY,
           brickX,
-          brickY + gameState.brickHeight
+          brickY + store.state.brickHeight
         );
-        gradients[c][r].addColorStop (0, gameConfig.colors.bricks[r][0]);
-        gradients[c][r].addColorStop (1, gameConfig.colors.bricks[r][1]);
+        gradients[c][r].addColorStop (
+          0,
+          store.state.config.colors.bricks[r][0]
+        );
+        gradients[c][r].addColorStop (
+          1,
+          store.state.config.colors.bricks[r][1]
+        );
         ctx.fillStyle = gradients[c][r];
 
         ctx.fill ();
@@ -201,32 +189,32 @@ function drawBricks () {
 }
 
 function resetBricks () {
-  for (var c = 0; c < gameState.brickColumnCount; c++) {
-    for (var r = 0; r < gameState.brickRowCount; r++) {
-      gameState.bricks[c][r].status = 1;
+  for (var c = 0; c < store.state.brickColumnCount; c++) {
+    for (var r = 0; r < store.state.brickRowCount; r++) {
+      store.state.bricks[c][r].status = 1;
     }
   }
 }
 
 function resetGame () {
   resetBricks ();
-  gameState.score = 0;
-  gameState.lives = 3;
+  store.state.score = 0;
+  store.state.lives = 3;
   resetBoard ();
-  gameState.gameRunning = true;
+  store.state.gameRunning = true;
   draw ();
 }
 
 function drawScore () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
-  ctx.fillText ('Score: ' + gameState.score, 8, 20);
+  ctx.fillText ('Score: ' + store.state.score, 8, 20);
 }
 
 function drawLives () {
   ctx.font = '16px Arial';
   ctx.fillStyle = 'white';
-  ctx.fillText ('Lives: ' + gameState.lives, canvas.width - 65, 20);
+  ctx.fillText ('Lives: ' + store.state.lives, canvas.width - 65, 20);
 }
 
 function drawGameOver () {
@@ -246,32 +234,33 @@ function drawYouWin () {
 }
 
 function bricksCollisionDetection () {
-  for (var c = 0; c < gameState.brickColumnCount; c++) {
-    for (var r = 0; r < gameState.brickRowCount; r++) {
-      var b = gameState.bricks[c][r];
+  for (var c = 0; c < store.state.brickColumnCount; c++) {
+    for (var r = 0; r < store.state.brickRowCount; r++) {
+      var b = store.state.bricks[c][r];
       if (b.status == 1) {
         if (
-          gameState.ballX > b.x &&
-          gameState.ballX < b.x + gameState.brickWidth &&
-          gameState.ballY + gameState.ballRadius > b.y &&
-          gameState.ballY - gameState.ballRadius < b.y + gameState.brickHeight
+          store.state.ballX > b.x &&
+          store.state.ballX < b.x + store.state.brickWidth &&
+          store.state.ballY + store.state.ballRadius > b.y &&
+          store.state.ballY - store.state.ballRadius <
+            b.y + store.state.brickHeight
         ) {
           // A brick was hit
-          gameState.ballDirectionY = gameState.ballDirectionY * -1;
-          gameState.ballForceY = -gameState.ballForceY;
-          if (r % 2 == 1 && r != 0 && r < gameState.highestBrickRowBroken) {
-            gameState.ballSpeed =
-              gameState.ballSpeed + gameConfig.ballSpeedMultiplier;
-            applyBallForce (gameState.ballSpeed);
+          store.state.ballDirectionY = store.state.ballDirectionY * -1;
+          store.state.ballForceY = -store.state.ballForceY;
+          if (r % 2 == 1 && r != 0 && r < store.state.highestBrickRowBroken) {
+            store.state.ballSpeed =
+              store.state.ballSpeed + store.state.config.ballSpeedMultiplier;
+            applyBallForce (store.state.ballSpeed);
           }
-          gameState.highestBrickRowBroken = r;
+          store.state.highestBrickRowBroken = r;
           b.status = 0;
-          gameState.score++;
+          store.state.score++;
           if (
-            gameState.score ==
-            gameState.brickRowCount * gameState.brickColumnCount
+            store.state.score ==
+            store.state.brickRowCount * store.state.brickColumnCount
           ) {
-            gameState.gameRunning = false;
+            store.state.gameRunning = false;
             drawYouWin ();
           }
         }
@@ -286,7 +275,7 @@ function keyDownHandler (e) {
   } else if (e.key == 'ArrowLeft') {
     leftPressed = true;
   } else if (e.key == 's') {
-    gameState.gameRunning = true;
+    store.state.gameRunning = true;
   }
 }
 
@@ -301,51 +290,48 @@ function keyUpHandler (e) {
 function mouseMoveHandler (e) {
   var relativeX = e.clientX - canvas.offsetLeft;
   if (relativeX > 0 && relativeX < canvas.width) {
-    gameState.paddleX = relativeX - gameState.paddleWidth / 2;
+    store.state.paddleX = relativeX - store.state.paddleWidth / 2;
   }
 }
 
 function applyBallForce (force) {
-  if (gameState.ballDirectionX < 0) {
-    gameState.ballForceX = -force;
+  if (store.state.ballDirectionX < 0) {
+    store.state.ballForceX = -force;
   } else {
-    gameState.ballForceX = force;
+    store.state.ballForceX = force;
   }
 
-  if (gameState.ballForceY < 0) {
-    gameState.ballForceY = -force;
+  if (store.state.ballForceY < 0) {
+    store.state.ballForceY = -force;
   } else {
-    gameState.ballForceY = force;
+    store.state.ballForceY = force;
   }
 }
 
 function moveBall () {
   // Only move the ball if the game is running
-  if (!gameState.gameRunning) {
+  if (!store.state.gameRunning) {
     return;
   }
 
   // Change the ball's location
-  gameState.ballX += gameState.ballForceX;
-  store.commit ('updateBallX', gameState.ballX + gameState.ballForceX);
-  gameState.ballY += gameState.ballForceY;
-  store.commit ('updateBallY', gameState.ballY + gameState.ballForceY);
-  console.log (`x: ${store.state.ballX}, y: ${store.state.ballY}`);
+  store.commit ('updateBallX', store.state.ballX + store.state.ballForceX);
+  store.commit ('updateBallY', store.state.ballY + store.state.ballForceY);
 }
 
 function movePaddle () {
   if (
     rightPressed &&
-    gameState.paddleX < canvas.width - gameState.paddleWidth
+    store.state.paddleX < canvas.width - store.state.paddleWidth
   ) {
-    gameState.paddleX += 7;
-    if (!gameState.gameRunning) {
-      gameState.ballX += 7;
+    store.state.paddleX += 7;
+    if (!store.state.gameRunning) {
+      store.state.ballX += 7;
     }
-  } else if (leftPressed && gameState.paddleX > 0) {
-    gameState.paddleX -= 7;
-    if (!gameState.gameRunning) {
-      gameState.ballX -= 7;
+  } else if (leftPressed && store.state.paddleX > 0) {
+    store.state.paddleX -= 7;
+    if (!store.state.gameRunning) {
+      store.state.ballX -= 7;
     }
   }
 }
@@ -354,63 +340,63 @@ function wallCollisionCheck () {
   // Wall collision check
   // Left and right
   if (
-    gameState.ballX + gameState.ballForceX >
-      canvas.width - gameState.ballRadius ||
-    gameState.ballX + gameState.ballForceX < gameState.ballRadius
+    store.state.ballX + store.state.ballForceX >
+      canvas.width - store.state.ballRadius ||
+    store.state.ballX + store.state.ballForceX < store.state.ballRadius
   ) {
-    gameState.ballForceX = gameState.ballForceX * -1;
+    store.state.ballForceX = store.state.ballForceX * -1;
   }
 
   // Top
-  if (gameState.ballY + gameState.ballForceY < gameState.ballRadius) {
-    gameState.ballForceY = gameState.ballForceY * -1;
-    if (gameState.topWasHit === false) {
-      gameState.topWasHit = true;
-      gameState.paddleWidth = gameState.paddleWidth / 2;
+  if (store.state.ballY + store.state.ballForceY < store.state.ballRadius) {
+    store.state.ballForceY = store.state.ballForceY * -1;
+    if (store.state.topWasHit === false) {
+      store.state.topWasHit = true;
+      store.state.paddleWidth = store.state.paddleWidth / 2;
     }
   }
 }
 
 function resetBoard () {
-  gameState.ballX = canvas.width / 2;
-  gameState.ballY = canvas.height - 30;
+  store.state.ballX = canvas.width / 2;
+  store.state.ballY = canvas.height - 30;
   applyBallForce (2);
-  gameState.topWasHit = false;
-  gameState.paddleWidth = gameConfig.paddleWidth;
-  gameState.paddleX = (canvas.width - gameState.paddleWidth) / 2;
+  store.state.topWasHit = false;
+  store.state.paddleWidth = store.state.config.paddleWidth;
+  store.state.paddleX = (canvas.width - store.state.paddleWidth) / 2;
 }
 
 function paddleCollisionCheck () {
   if (
-    gameState.ballY + gameState.ballForceY + gameState.ballRadius >
-    canvas.height - gameState.paddleHeight - gameState.ballRadius
+    store.state.ballY + store.state.ballForceY + store.state.ballRadius >
+    canvas.height - store.state.paddleHeight - store.state.ballRadius
   ) {
     if (
-      gameState.ballX > gameState.paddleX &&
-      gameState.ballX < gameState.paddleX + gameState.paddleWidth &&
-      gameState.ballY + gameState.ballForceY + gameState.ballRadius >
-        canvas.height - gameState.paddleHeight
+      store.state.ballX > store.state.paddleX &&
+      store.state.ballX < store.state.paddleX + store.state.paddleWidth &&
+      store.state.ballY + store.state.ballForceY + store.state.ballRadius >
+        canvas.height - store.state.paddleHeight
     ) {
       // Reverse ball direction
-      gameState.ballForceY = gameState.ballForceY * -1;
+      store.state.ballForceY = store.state.ballForceY * -1;
 
       // speed ball up
-      // gameState.ballSpeed++;
+      // store.state.ballSpeed++;
 
       // If paddle is bigger then screen, end game
-      if (gameState.paddleWidth > canvas.width) {
-        gameState.paddleWidth = canvas.width;
-        gameState.gameRunning = false;
+      if (store.state.paddleWidth > canvas.width) {
+        store.state.paddleWidth = canvas.width;
+        store.state.gameRunning = false;
         drawGameOver ();
         return;
       }
     } else if (
-      gameState.ballY + gameState.ballForceY >
-      canvas.height - gameState.ballRadius
+      store.state.ballY + store.state.ballForceY >
+      canvas.height - store.state.ballRadius
     ) {
-      gameState.lives--;
-      gameState.gameRunning = false;
-      if (gameState.lives < 0) {
+      store.state.lives--;
+      store.state.gameRunning = false;
+      if (store.state.lives < 0) {
         drawGameOver ();
       } else {
         resetBoard ();
@@ -449,9 +435,14 @@ function draw () {
 document.addEventListener ('keydown', keyDownHandler, false);
 document.addEventListener ('keyup', keyUpHandler, false);
 
+// set initial computed state
+
+store.commit ('updateBallX', canvas.width / 2);
+store.commit ('updateBallY', canvas.height - 30);
+store.commit ('updateBallForceX', store.state.ballForceX * -1);
+store.commit ('updatePaddleX', (canvas.width - store.state.paddleWidth) / 2);
+
 // Run the loop
-store.commit ('updateBallX', document.getElementById ('myCanvas').width / 2);
-store.commit ('updateBallY', document.getElementById ('myCanvas').height - 30);
 applyBallForce (2);
 canvas.focus ();
 draw ();
