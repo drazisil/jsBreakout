@@ -353,6 +353,8 @@ function bricksCollisionDetection () {
             store.commit ('toggleGameRunning', false);
             drawYouWin ();
           }
+          // Only break one brick
+          return;
         }
       }
     }
@@ -422,7 +424,7 @@ function checkCollisionSideWalls () {
 function checkCollisionTopWall () {
   if (store.state.ballY + store.state.ballForceY < store.state.ballRadius) {
     store.commit ('setBallForceY', store.state.ballForceY * -1);
-    if (store.state.topWasHit === false) {
+    if (store.state.wasTopWallHit === false) {
       store.commit ('toggleTopWallHit', true);
       store.commit ('setPaddleWidth', store.state.paddleWidth / 2);
     }
