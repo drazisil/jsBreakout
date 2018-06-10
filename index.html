@@ -10,10 +10,14 @@
 </head>
 
 <body>
-
-    <canvas id="myCanvas" width="720" height="480"></canvas>
+    <div id="app">
+        {{ message }}
+        <mycanvas />
+    </div>
 
     Press 's' to start
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.16/dist/vue.js"></script>
+    <script src="https://unpkg.com/vuex@2.0.0"></script>
     <script src="./src/app.js"></script>
 
 </body>

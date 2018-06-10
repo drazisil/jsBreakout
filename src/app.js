@@ -1,3 +1,57 @@
+// Define a new component called todo-item
+Vue.component ('mycanvas', {
+  template: '<canvas id="myCanvas" width="720" height="480" />',
+});
+
+const store = new Vuex.Store ({
+  state: {
+    count: 0,
+    gameRunning: false,
+    paddleWidth: 150,
+    paddleHeight: 20,
+    score: 0,
+    lives: 3,
+    bricks: [],
+    ballRadius: 10,
+    ballX: 0,
+    ballY: 0,
+
+    topWasHit: false,
+    ballForceX: 0,
+    ballForceY: 0,
+    ballSpeed: 2,
+    ballDirectionX: 1,
+    ballDirectionY: -1,
+
+    brickRowCount: 8,
+    brickColumnCount: 8,
+    brickWidth: 75,
+    brickHeight: 20,
+    brickPadding: 10,
+    brickOffsetTop: 30,
+    brickOffsetLeft: 30,
+    highestBrickRowBroken: 8,
+  },
+  mutations: {
+    increment (state) {
+      state.count++;
+    },
+    updateBallX (state, x) {
+      state.ballX = x;
+    },
+    updateBallY (state, y) {
+      state.ballY = y;
+    },
+  },
+});
+
+var app = new Vue ({
+  el: '#app',
+  data: {
+    message: 'Hello Vue!',
+  },
+});
+
 // JavaScript code goes here
 var canvas = document.getElementById ('myCanvas');
 var ctx = canvas.getContext ('2d');
@@ -273,7 +327,10 @@ function moveBall () {
 
   // Change the ball's location
   gameState.ballX += gameState.ballForceX;
+  store.commit ('updateBallX', gameState.ballX + gameState.ballForceX);
   gameState.ballY += gameState.ballForceY;
+  store.commit ('updateBallY', gameState.ballY + gameState.ballForceY);
+  console.log (`x: ${store.state.ballX}, y: ${store.state.ballY}`);
 }
 
 function movePaddle () {
@@ -393,6 +450,8 @@ document.addEventListener ('keydown', keyDownHandler, false);
 document.addEventListener ('keyup', keyUpHandler, false);
 
 // Run the loop
+store.commit ('updateBallX', document.getElementById ('myCanvas').width / 2);
+store.commit ('updateBallY', document.getElementById ('myCanvas').height - 30);
 applyBallForce (2);
 canvas.focus ();
 draw ();
