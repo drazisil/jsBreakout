@@ -8,6 +8,7 @@
       "name": "Launch index.html",
       "type": "firefox",
       "request": "launch",
+      "profile": "default",
       "file": "${workspaceFolder}/index.html",
       "reloadOnChange": {
         "watch": ["${workspaceFolder}/**/*.js"]
