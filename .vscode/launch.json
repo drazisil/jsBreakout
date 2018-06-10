@@ -8,11 +8,9 @@
       "name": "Launch index.html",
       "type": "firefox",
       "request": "launch",
-      "reAttach": true,
       "file": "${workspaceFolder}/index.html",
       "reloadOnChange": {
-        "watch": ["${workspaceFolder}/**/*.js"],
-        "ignore": ["${workspaceFolder}/node_modules/**"]
+        "watch": ["${workspaceFolder}/**/*.js"]
       }
     }
   ]
